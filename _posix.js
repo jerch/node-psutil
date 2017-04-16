@@ -11,8 +11,6 @@ function PosixProcess(pid) {
     if (typeof pid === 'undefined')
         pid = process.pid;
     pid |= 0;
-    if (pid < 1)
-        throw new Error('pid must be a positive integer');
     EventEmitter.call(this);
     this.pid = pid;
     this.terminatePoller = null;

@@ -18,10 +18,10 @@ switch (process.platform) {
         _system = require('./_linux').system;
         _Process = require('./_linux').Process;
         break;
-    //case 'sunos':
-    //    _system = require('./_sunos').system;
-    //    _Process = require('./_sunos').Process;
-    //    break;
+    case 'sunos':
+        _system = require('./_sunos').system;
+        _Process = require('./_sunos').Process;
+        break;
     //case 'win32':
     //    _system = require('./_win32').system;
     //    _Process = require('./_win32').Process;
