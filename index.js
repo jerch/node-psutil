@@ -36,10 +36,10 @@ function System() {
     this._system = _system;
 }
 System.prototype.bootTime = function () {
-    return this._system.bootTime().getTime();
+    return new Date(this._system.bootTime());
 };
 System.prototype.uptime = function () {
-    var up = new Date().getTime()) - this._system.bootTime().getTime();
+    var up = new Date().getTime() - this._system.bootTime();
     return (up / 1000) | 0;
 };
 System.prototype.pids = function () {
