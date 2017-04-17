@@ -35,6 +35,13 @@ function System() {
         return new System();
     this._system = _system;
 }
+System.prototype.bootTime = function () {
+    return this._system.bootTime().getTime();
+};
+System.prototype.uptime = function () {
+    var up = new Date().getTime()) - this._system.bootTime().getTime();
+    return (up / 1000) | 0;
+};
 System.prototype.pids = function () {
     return this._system.pids();
 };

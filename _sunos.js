@@ -5,28 +5,20 @@ var _psutil = require('./build/Release/psutil.node');
 var fs = require('fs');
 
 var PROCFS_PATH = '/proc/';
-var PROC_STATUSES = {
-    'R': 'running',
-    'S': 'sleeping',
-    'D': 'disk-sleep',
-    'T': 'stopped',
-    't': 'tracing-stop',
-    'Z': 'zombie',
-    'X': 'dead',
-    'x': 'dead',
-    'K': 'wake-kill',
-    'W': 'waking'
-};
-
 var system;
 
 function SunSystem() {
     if (!(this instanceof SunSystem))
         return new SunSystem();
 	this.states = _psutil.states();
+    this._boot_time = null;
 }
 
 SunSystem.prototype.bootTime = function () {
+    if (this._boot_time)
+        return this._boot_time;
+    this._boot_time = new Date(_psutil.boottime() * 1000);
+    return this._boot_time;
 };
 SunSystem.prototype.clockTicks = function () {
 	return _psutil.clockTicks();
@@ -72,7 +64,7 @@ SunProcess.prototype.cpuNum = function () {
     throw new Error('not implemented');
 };
 SunProcess.prototype.createTime = function () {
-	return new Date(_psutil.psinfo(this.pid).start * 1000);
+	return new Date(_psutil.psinfo(this.pid).start);
 };
 SunProcess.prototype.memoryInfo = function () {
     throw new Error('not implemented');

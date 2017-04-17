@@ -65,43 +65,49 @@ NAN_METHOD(Pwuid) {
 }
 
 #if defined(__sun)
+#define MSECS(t) (t.tv_sec * 1000 + t.tv_nsec / 1000000)
+
 #include <procfs.h>
 #include <sys/mkdev.h>
-#include <iostream>
 NAN_METHOD(Psinfo) {
     Nan::HandleScope scope;
     if (info.Length() != 1 || !info[0]->IsNumber()) {
         return Nan::ThrowError("usage: psutil.psinfo(pid)");
     }
 
-	psinfo_t psinfo;
-	char *path;
-	asprintf(&path, "/proc/%d/psinfo", info[0]->Uint32Value());
-	if (!path)
-		return;  // TODO: some kind of error handling
-	int fd = open(path, O_RDONLY);
-	if (fd == -1)
-		return;  // TODO: some kind of error handling
-	int bytes = read(fd, (void *) &psinfo, sizeof(psinfo));
-	if (bytes == -1) {
-		close(fd);
-		return;  // TODO: some kind of error handling
+    psinfo_t psinfo;
+    char *path;
+    asprintf(&path, "/proc/%d/psinfo", info[0]->Uint32Value());
+    if (!path)
+        return Nan::ThrowError("psinfo failed - could not allocate path");
+
+    int fd = open(path, O_RDONLY);
+    if (fd == -1) {
+        std::string error(strerror(errno));
+        return Nan::ThrowError((std::string("psinfo failed - ") + error).c_str());
     }
-	if (bytes != sizeof(psinfo)) {
-		close(fd);
-		return;  // TODO: some kind of error handling
-	}
-	close(fd);
-	free(path);
+
+    int bytes = read(fd, (void *) &psinfo, sizeof(psinfo));
+    if (bytes == -1) {
+        std::string error(strerror(errno));
+        close(fd);
+        return Nan::ThrowError((std::string("psinfo failed - ") + error).c_str());
+    }
+    if (bytes != sizeof(psinfo)) {
+        close(fd);
+        return Nan::ThrowError("psinfo failed - wrong psinfo size");
+    }
+    close(fd);
+    free(path);
 
     Local<Object> obj = Nan::New<Object>();
-	obj->Set(Nan::New<String>("ppid").ToLocalChecked(), Nan::New<Number>(psinfo.pr_ppid));
-	obj->Set(Nan::New<String>("uid").ToLocalChecked(), Nan::New<Number>(psinfo.pr_uid));
-	obj->Set(Nan::New<String>("ttydev").ToLocalChecked(), Nan::New<Number>(psinfo.pr_ttydev));
-    obj->Set(Nan::New<String>("start").ToLocalChecked(), Nan::New<Number>(psinfo.pr_start.tv_sec));  // TODO: more digits!
-	obj->Set(Nan::New<String>("name").ToLocalChecked(), Nan::New<String>(psinfo.pr_fname).ToLocalChecked());
-	obj->Set(Nan::New<String>("args").ToLocalChecked(), Nan::New<String>(psinfo.pr_psargs).ToLocalChecked());
-	obj->Set(Nan::New<String>("state").ToLocalChecked(), Nan::New<Number>(psinfo.pr_lwp.pr_state));
+    obj->Set(Nan::New<String>("ppid").ToLocalChecked(), Nan::New<Number>(psinfo.pr_ppid));
+    obj->Set(Nan::New<String>("uid").ToLocalChecked(), Nan::New<Number>(psinfo.pr_uid));
+    obj->Set(Nan::New<String>("ttydev").ToLocalChecked(), Nan::New<Number>(psinfo.pr_ttydev));
+    obj->Set(Nan::New<String>("start").ToLocalChecked(), Nan::New<Number>(MSECS(psinfo.pr_start)));
+    obj->Set(Nan::New<String>("name").ToLocalChecked(), Nan::New<String>(psinfo.pr_fname).ToLocalChecked());
+    obj->Set(Nan::New<String>("args").ToLocalChecked(), Nan::New<String>(psinfo.pr_psargs).ToLocalChecked());
+    obj->Set(Nan::New<String>("state").ToLocalChecked(), Nan::New<Number>(psinfo.pr_lwp.pr_state));
     info.GetReturnValue().Set(obj);
 }
 
@@ -118,7 +124,24 @@ NAN_METHOD(States) {
 	obj->Set(Nan::New<Number>(SWAIT), Nan::New<String>("waiting").ToLocalChecked());
 	info.GetReturnValue().Set(obj);
 }
-#endif
+
+#include <utmpx.h>
+NAN_METHOD(Boottime) {
+	Nan::HandleScope scope;
+    struct utmpx search;
+    search.ut_type = BOOT_TIME;
+    struct utmpx *ut;
+    long boottime = 0;
+    ut = getutxid(&search);
+    if (!ut) {
+        std::string error(strerror(errno));
+        return Nan::ThrowError((std::string("boottime failed - ") + error).c_str());
+    }
+    boottime = ut->ut_tv.tv_sec;
+    endutent();
+	info.GetReturnValue().Set(Nan::New<Number>(boottime));
+}
+#endif  // __sun
 
 
 
@@ -131,7 +154,8 @@ NAN_MODULE_INIT(init) {
 
 #if defined(__sun)
     MODULE_EXPORT("psinfo", Nan::New<FunctionTemplate>(Psinfo)->GetFunction());
-	MODULE_EXPORT("states", Nan::New<FunctionTemplate>(States)->GetFunction());
+    MODULE_EXPORT("states", Nan::New<FunctionTemplate>(States)->GetFunction());
+    MODULE_EXPORT("boottime", Nan::New<FunctionTemplate>(Boottime)->GetFunction());
 #endif
 }
 
