@@ -10,10 +10,10 @@ switch (process.platform) {
     //    _system = require('./_darwin').system;
     //    _Process = require('./_darwin').Process;
     //    break;
-    //case 'freebsd':
-    //    _system = require('./_freebsd').system;
-    //    _Process = require('./_freebsd').Process;
-    //    break;
+    case 'freebsd':
+        _system = require('./_freebsd').system;
+        _Process = require('./_freebsd').Process;
+        break;
     case 'linux':
         _system = require('./_linux').system;
         _Process = require('./_linux').Process;

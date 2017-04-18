@@ -145,6 +145,63 @@ NAN_METHOD(Boottime) {
 
 
 
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#include <sys/user.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
+NAN_METHOD(Pids) {
+	Nan::HandleScope scope;
+    
+    int err;
+    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PROC, 0};
+    struct kinfo_proc *pinfo;
+    size_t bytes;
+
+    // repeat until we get everything into pinfo
+    do {
+        pinfo = NULL;
+        bytes = 0;
+
+        // first obtain bytes to hold process info
+        err = sysctl(mib, 4, NULL, &bytes, NULL, 0);
+        if (err == -1) {
+            std::string error(strerror(errno));
+            return Nan::ThrowError((std::string("pids failed - ") + error).c_str());
+        }
+
+        // obtain all process infos
+        pinfo = (struct kinfo_proc *) malloc(bytes);
+        if (!pinfo)
+            return Nan::ThrowError("pids failed - not enough memory");
+        err = sysctl(mib, 4, pinfo, &bytes, NULL, 0);
+        if (err == -1) {
+            if (errno == ENOMEM) {
+                free(pinfo);
+                pinfo = NULL;
+            } else {
+                std::string error(strerror(errno));
+                return Nan::ThrowError((std::string("pids failed - ") + error).c_str());
+            }
+        }
+    } while (!pinfo);
+
+    unsigned int length = bytes / sizeof(struct kinfo_proc);
+
+    // write PIDs to JS array
+    Local<Array> arr(Nan::New<Array>(length));
+    for (unsigned int i=0; i<length; ++i)
+        arr->Set(i, Nan::New<Number>(pinfo[i].ki_pid));  // FreeBSD
+        //arr->Set(i, Nan::New<Number>(pinfo[i].p_pid));          // TODO: OpenBSD, NetBSD
+        //arr->Set(i, Nan::New<Number>(pinfo[i].kp_proc.p_pid));  // TODO: Darwin
+
+    free(pinfo);
+
+	info.GetReturnValue().Set(arr);
+}
+#endif  // BSDs
+
+
+
 NAN_MODULE_INIT(init) {
     Nan::HandleScope scope;
     MODULE_EXPORT("kill", Nan::New<FunctionTemplate>(Kill)->GetFunction());
@@ -156,6 +213,10 @@ NAN_MODULE_INIT(init) {
     MODULE_EXPORT("psinfo", Nan::New<FunctionTemplate>(Psinfo)->GetFunction());
     MODULE_EXPORT("states", Nan::New<FunctionTemplate>(States)->GetFunction());
     MODULE_EXPORT("boottime", Nan::New<FunctionTemplate>(Boottime)->GetFunction());
+#endif
+
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__) || defined(__NetBSD__)
+    MODULE_EXPORT("pids", Nan::New<FunctionTemplate>(Pids)->GetFunction());
 #endif
 }
 
