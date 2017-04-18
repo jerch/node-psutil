@@ -143,17 +143,38 @@ NAN_METHOD(Boottime) {
 }
 #endif  // __sun
 
+/* typical preprocessor system identification defines
+see: https://sourceforge.net/p/predef/wiki/OperationSystems/
 
+__FreeBSD__            FreeBSD
+__NetBSD__             NetBSD
+__OpenBSD__            OpenBSD
+__DragonFly__          DragonFlyBSD
+__CYGWIN__             Cygwin
+__hpux                 HP Unix
+__sgi                  SGI IRIX
+__linux__              Linux kernel based system
+__APPLE__ && __MACH__  Mac OSX
+__sun                  Solaris and older SunOS
+__sun && __SRV4        Solaris
+__unix__               unix env
+_WIN32                 Windows 32 & 64 bit
+_WIN64                 Windows 64 bit
+*/
 
 #if defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #include <sys/user.h>
 #include <sys/types.h>
+//#include <sys/sysctl.h>
+
+#define _KMEMUSER
 #include <sys/sysctl.h>
+#undef _KMEMUSER
 NAN_METHOD(Pids) {
 	Nan::HandleScope scope;
     
     int err;
-    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PROC, 0};
+    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0};
     struct kinfo_proc *pinfo;
     size_t bytes;
 
@@ -166,7 +187,7 @@ NAN_METHOD(Pids) {
         err = sysctl(mib, 4, NULL, &bytes, NULL, 0);
         if (err == -1) {
             std::string error(strerror(errno));
-            return Nan::ThrowError((std::string("pids failed - ") + error).c_str());
+            return Nan::ThrowError((std::string("pids failed1 - ") + error).c_str());
         }
 
         // obtain all process infos
@@ -180,19 +201,21 @@ NAN_METHOD(Pids) {
                 pinfo = NULL;
             } else {
                 std::string error(strerror(errno));
-                return Nan::ThrowError((std::string("pids failed - ") + error).c_str());
+                return Nan::ThrowError((std::string("pids failed2 - ") + error).c_str());
             }
         }
     } while (!pinfo);
 
-    unsigned int length = bytes / sizeof(struct kinfo_proc);
+    struct kinfo_proc placeholder = kinfo_proc();
+    unsigned int length = bytes / sizeof(placeholder);
 
     // write PIDs to JS array
     Local<Array> arr(Nan::New<Array>(length));
     for (unsigned int i=0; i<length; ++i)
-        arr->Set(i, Nan::New<Number>(pinfo[i].ki_pid));  // FreeBSD
+        //arr->Set(i, Nan::New<Number>(pinfo[i].ki_pid));  // FreeBSD
         //arr->Set(i, Nan::New<Number>(pinfo[i].p_pid));          // TODO: OpenBSD, NetBSD
         //arr->Set(i, Nan::New<Number>(pinfo[i].kp_proc.p_pid));  // TODO: Darwin
+        arr->Set(i, Nan::New<Number>(pinfo[i].kp_proc.p_pid));          // NetBSD
 
     free(pinfo);
 

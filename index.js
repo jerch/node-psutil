@@ -14,6 +14,10 @@ switch (process.platform) {
         _system = require('./_freebsd').system;
         _Process = require('./_freebsd').Process;
         break;
+    case 'netbsd':
+        _system = require('./_freebsd').system;
+        _Process = require('./_freebsd').Process;
+        break;
     case 'linux':
         _system = require('./_linux').system;
         _Process = require('./_linux').Process;
