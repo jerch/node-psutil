@@ -35,8 +35,8 @@ PosixProcess.prototype.on = PosixProcess.prototype.addListener = function(eventN
         this.originalTimePoller = this.createTime();
         var that = this;
         this.terminatePoller = setInterval(function () {
-            if (!that.isRunning(that.pid)
-                  || that.originalTimePoller.getTime() !== that.createTime().getTime()) {
+            if (!that.isRunning(that.pid)) {
+//                  || that.originalTimePoller.getTime() !== that.createTime().getTime()) {
                 clearInterval(that.terminatePoller);
                 that.terminatePoller = null;
                 that.emit('terminate');

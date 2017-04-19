@@ -2,7 +2,8 @@
   'targets': [
     {
       'target_name': 'psutil',
-      'include_dirs' : ['<!(node -e "require(\'nan\')")'],
+      'include_dirs': ['<!(node -e "require(\'nan\')")'],
+      'cflags': ['-std=c++11'],
       'conditions': [
             ['OS == "linux"',   {'sources': ['src/posix.cpp', 'src/module_linux.cpp']}],
             ['OS == "sunos"',   {'sources': ['src/posix.cpp', 'src/module_sunos.cpp']}],
