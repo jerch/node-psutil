@@ -73,7 +73,7 @@ SunProcess.prototype.cwd = function () {
     throw new Error('not implemented');
 };
 SunProcess.prototype.status = function () {
-	return system.states[_psutil.psinfo(this.pid).state];
+	return system.states[_psutil.psinfo(this.pid).state] || '?';
 };
 SunProcess.prototype.ppid = function () {
 	return _psutil.psinfo(this.pid).ppid;
