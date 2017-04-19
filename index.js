@@ -6,10 +6,10 @@ var _system;
 var system;
 var _Process;
 switch (process.platform) {
-    //case 'darwin':
-    //    _system = require('./_darwin').system;
-    //    _Process = require('./_darwin').Process;
-    //    break;
+    case 'darwin':
+        _system = require('./_darwin').system;
+        _Process = require('./_darwin').Process;
+        break;
     case 'freebsd':
         _system = require('./_freebsd').system;
         _Process = require('./_freebsd').Process;
