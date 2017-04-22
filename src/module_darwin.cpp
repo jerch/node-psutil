@@ -14,7 +14,6 @@
 #include <sys/proc.h>
 
 #define MSECS(t) ((unsigned long) t.tv_sec * 1000 + t.tv_usec / 1000)
-#define P_MSECS(p) ((unsigned long) p.p_ustart_sec * 1000 + p.p_ustart_usec / 1000)
 
 using namespace v8;
 
