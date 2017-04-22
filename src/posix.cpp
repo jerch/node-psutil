@@ -33,6 +33,8 @@ NAN_METHOD(Sleep) {
         return Nan::ThrowError("usage: psutil.sleep(msec)");
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(info[0]->IntegerValue()));
+uv_run(uv_default_loop(), UV_RUN_NOWAIT);  // TODO: better event loop invocation
+
     info.GetReturnValue().SetUndefined();
 }
 

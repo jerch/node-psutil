@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/proc.h>
-//#include <sys/lwp.h>
 
 #define MSECS(t) ((unsigned long) t.tv_sec * 1000 + t.tv_usec / 1000)
 #define P_MSECS(p) ((unsigned long) p.p_ustart_sec * 1000 + p.p_ustart_usec / 1000)
@@ -75,20 +74,23 @@ NAN_METHOD(Cmdline) {
         return Nan::ThrowError("usage: psutil.cmdline(pid)");
     }
 
-    int mib[] = {CTL_KERN, KERN_PROCARGS, (int) info[0]->IntegerValue()};
+    int mib[] = {CTL_KERN, KERN_PROCARGS2, (int) info[0]->IntegerValue()};
     char *pinfo = NULL;
     size_t bytes = 0;
+    size_t size = sizeof(size_t);
 
-    if (sysctl(mib, 3, NULL, &bytes, NULL, 0) == -1) {
+    int mib_[] = {CTL_KERN, KERN_ARGMAX};
+    if (sysctl(mib_, 2, &bytes, &size, NULL, 0) == -1) {
         std::string error(strerror(errno));
-        return Nan::ThrowError((std::string("cmdline failed - ") + error).c_str());
+        return Nan::ThrowError((std::string("cmdline failed1 - ") + error).c_str());
     }
+
     pinfo = (char *) malloc(bytes);
     if (!pinfo)
         return Nan::ThrowError("cmdline failed - not enough memory");
     if (sysctl(mib, 3, pinfo, &bytes, NULL, 0) == -1) {
             std::string error(strerror(errno));
-            return Nan::ThrowError((std::string("cmdline failed - ") + error).c_str());
+            return Nan::ThrowError((std::string("cmdline2 failed - ") + error).c_str());
     }
     info.GetReturnValue().Set(Nan::CopyBuffer(pinfo, bytes).ToLocalChecked());
     free(pinfo);

@@ -42,7 +42,57 @@ DarwinProcess.prototype.exe = function () {
     throw new Error('not implemented');
 };
 DarwinProcess.prototype.cmdline = function () {
-    return _psutil.cmdline(this.pid).toString();
+    try {
+        var data = _psutil.cmdline(this.pid);
+        var argc = new Uint32Array(data)[0];
+        var s = data.toString();
+        for (var i=4; i<s.length; ++i) {
+            if (s[i] == '\x00')
+                continue;
+            break;
+        }
+        var basename = '';
+        for (i; i<s.length; ++i) {
+            if (s[i] == '\x00')
+                break;
+            basename += s[i];
+        }
+        for (i; i<s.length; ++i) {
+            if (s[i] == '\x00')
+                continue;
+            break;
+        }
+        var cmdline = [];
+        var part = '';
+        for (i; i<s.length; ++i) {
+            if (cmdline.length == argc)
+                break;
+            if (s[i] == '=')
+                break;
+            if (s[i] == '\x00') {
+                if (!part.length)
+                    break;
+                cmdline.push(part);
+                part = '';
+            } else
+                part += s[i];
+        }
+        //return [s, basename, cmdline];
+        return cmdline;
+    } catch (e) {
+        // TODO: make it less blocking for multiple calls
+        var execFile = require('child_process').execFile;
+        var output = '';
+        child = execFile('/bin/ps', [this.pid], function(error, stdout, stderr) {
+            output = stdout;
+        });
+        while (!output)
+            _psutil.sleep(1);
+        var s = output.split('\n')[1].split(':').slice(-1)[0];
+        if (!s)
+            return [];
+        return s.substring(s.indexOf(' ')+1).split(' ');
+    }
 };
 DarwinProcess.prototype.environ = function () {
     throw new Error('not implemented');
